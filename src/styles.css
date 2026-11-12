@@ -7982,6 +7982,171 @@ tbody tr:hover {
 @media (max-width: 1100px) { .credit-detail-page .credit-main-grid { grid-template-columns: 1fr; } .credit-detail-page .credit-sidebar-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
 @media (max-width: 600px) { .credit-detail-page .credit-sidebar-column, .credit-applicant-grid { grid-template-columns: 1fr; } .credit-applicant-grid > div + div { border-left: 0; padding-left: 0; } .credit-detail-page .credit-hero-main-title { flex-wrap: wrap; } .credit-detail-page .stage-footer-actions { width: 100%; flex-wrap: wrap; } }
 
+.sim-view {
+  display: grid;
+  gap: 16px;
+}
+
+.sim-heading h2 {
+  margin: 2px 0 6px;
+  font-size: 1.45rem;
+}
+
+.sim-heading p,
+.sim-note {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.sim-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.sim-card h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.sim-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sim-field > span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sim-field small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sim-field input[readonly] {
+  background: var(--bg-muted);
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.sim-plazo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(88px, 0.7fr);
+  gap: 8px;
+}
+
+.sim-alert {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-danger-bg);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
+  color: var(--color-danger);
+  font-size: 0.86rem;
+}
+
+.sim-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sim-summary article {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.sim-summary span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.sim-summary strong {
+  font-size: 0.98rem;
+}
+
+.sim-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.sim-plan {
+  max-height: 420px;
+}
+
+.sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.sim-table th,
+.sim-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.sim-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+}
+
+.sim-table td strong,
+.sim-table td small {
+  display: block;
+}
+
+.sim-table td small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.sim-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .sim-grid,
+  .sim-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .sim-grid,
+  .sim-summary,
+  .sim-plazo {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 
 

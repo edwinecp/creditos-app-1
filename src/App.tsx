@@ -30,6 +30,7 @@ import { ProductFormDrawer } from './components/creditos/ProductFormDrawer';
 import { CreditRequestDrawer } from './components/creditos/CreditRequestDrawer';
 import { CreditRequestsView } from './components/creditos/CreditRequestsView';
 import { CreditDetailView } from './components/creditos/CreditDetailView';
+import { CreditSimulationView } from './components/creditos/CreditSimulationView';
 import { AppSidebar, creditSubmodules, type ProductosCreditoTab } from './components/layout/AppSidebar';
 import { AppTopBar } from './components/layout/AppTopBar';
 import {
@@ -7589,7 +7590,7 @@ function App() {
 
         {selectedModule && isProductosCreditoModule && (
           <section className="socios-view">
-            {productosCreditoTab !== 'convenios' && productosCreditoTab !== 'documentos' && productosCreditoTab !== 'atributos' && productosCreditoTab !== 'solicitudes' && productosCreditoTab !== 'general' && productosCreditoTab !== 'parametros' && productosCreditoTab !== 'tblAtributos' && productosCreditoTab !== 'formatos' && productosCreditoTab !== 'tasas' && productosCreditoTab !== 'plazos' && productosCreditoTab !== 'bancos' && (
+            {productosCreditoTab !== 'convenios' && productosCreditoTab !== 'documentos' && productosCreditoTab !== 'atributos' && productosCreditoTab !== 'solicitudes' && productosCreditoTab !== 'simulacion' && productosCreditoTab !== 'general' && productosCreditoTab !== 'parametros' && productosCreditoTab !== 'tblAtributos' && productosCreditoTab !== 'formatos' && productosCreditoTab !== 'tasas' && productosCreditoTab !== 'plazos' && productosCreditoTab !== 'bancos' && (
               <div className="product-context-bar">
                 <div>
                   <span className="section-kicker">Producto en configuracion</span>
@@ -7667,6 +7668,10 @@ function App() {
                   />}
                 </CreditRequestsView>
               )
+            )}
+
+            {productosCreditoTab === 'simulacion' && session && (
+              <CreditSimulationView token={session.token} />
             )}
 
             {productosCreditoTab === 'general' && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ClipboardList, Package, SlidersHorizontal, ListTree, Handshake, Files, GitBranch, Settings2, FileText, Percent, Clock, Landmark, ChevronRight } from 'lucide-react';
+import { ClipboardList, Package, SlidersHorizontal, ListTree, Handshake, Files, GitBranch, Settings2, FileText, Percent, Clock, Landmark, ChevronRight, Calculator } from 'lucide-react';
 import type { CatalogModule, SecurityUser } from '../../api';
 
 export type ViewKey =
@@ -20,6 +20,7 @@ export type ConfigTab = 'roles' | 'permisos' | 'modulos' | 'salarios' | 'fianzas
 
 export const creditSubmodules = [
   { key: 'solicitudes', label: 'Solicitudes', icon: ClipboardList },
+  { key: 'simulacion', label: 'Simulación', icon: Calculator },
   { key: 'general', label: 'Productos', icon: Package },
   { key: 'atributos', label: 'Condiciones y cargos', icon: SlidersHorizontal },
   { key: 'tblAtributos', label: 'Catálogo atributos', icon: ListTree },

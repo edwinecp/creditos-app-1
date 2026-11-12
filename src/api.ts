@@ -1266,6 +1266,13 @@ export type SimulacionCredito = {
     saldoFinal: number;
     cargos: number;
   }>;
+  fianzaAplicada?: {
+    id: number;
+    nombre: string;
+    idCalificacion: number;
+    letra: string;
+    porcentaje: number;
+  } | null;
 };
 
 export type PortalCliente = {
@@ -1535,6 +1542,12 @@ export const api = {
   listCreditosCatalogs: (token: string) => request<CreditosCatalogs>('/api/v1/creditos/catalogos', {}, token),
   listCreditos: (token: string) => request<CreditoRow[]>('/api/v1/creditos', {}, token),
   simularCredito: (token: string, body: unknown) => request<SimulacionCredito>('/api/v1/creditos/simular', { method: 'POST', body: JSON.stringify(body) }, token),
+  listLineasSimulacion: (token: string, idEmpresa?: number) =>
+    request<Array<{ id: number; nombre: string; montoMinimo: number | null; montoMaximo: number | null; plazoMinimo: number | null; plazoMaximo: number | null }>>(
+      `/api/v1/creditos/simulacion/lineas${idEmpresa ? `?idEmpresa=${idEmpresa}` : ''}`,
+      {},
+      token
+    ),
   createCredito: (token: string, body: unknown) => request<CreditoRow>('/api/v1/creditos', { method: 'POST', body: JSON.stringify(body) }, token),
   listCreditoDocumentos: (token: string, creditoId: number) => request<CreditoDocumentoRow[]>(`/api/v1/creditos/${creditoId}/documentos`, {}, token),
   listCreditoEtapas: (token: string, creditoId: number) => request<CreditoEtapaRow[]>(`/api/v1/creditos/${creditoId}/etapas`, {}, token),
