@@ -5107,7 +5107,7 @@ function App() {
     }
   };
 
-  const handleNavigateCreditTab = (tab: ProductosCreditoTab) => {
+  const handleNavigateCreditTab = (tab: ProductosCreditoTab, options?: { keepSidebarOpen?: boolean }) => {
     const creditModule = visibleUserModules.find((module) => {
       const name = module.nombre.toLowerCase();
       return name.includes('credito') && !['comercial', 'vendedor', 'libranz', 'cartera'].some((keyword) => name.includes(keyword));
@@ -5121,7 +5121,7 @@ function App() {
     setShowRadicarForm(false);
     setProductosCreditoTab(tab);
     setView(`modulo:${creditModule.id}`);
-    setSidebarOpen(false);
+    if (!options?.keepSidebarOpen) setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -5597,7 +5597,7 @@ function App() {
             return;
           }
           if (modType === 'credito') {
-            handleNavigateCreditTab('solicitudes');
+            handleNavigateCreditTab('solicitudes', { keepSidebarOpen: true });
             return;
           }
           if (modType === 'empresa') {
