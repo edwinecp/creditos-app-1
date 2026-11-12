@@ -1239,6 +1239,7 @@ function App() {
   const [carteraFilters, setCarteraFilters] = useState({ fechaInicio: '', fechaFin: '', idEmpresa: '', idProducto: '', idSocio: '', estado: '' });
   const [apiStatus, setApiStatus] = useState('Conectando a la API...');
   const [view, setView] = useState<ViewKey>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [configTab, setConfigTab] = useState<ConfigTab>('roles');
   const [authForm, setAuthForm] = useState<AuthFormState>({ username: '', password: '' });
   const [portalRegisterForm, setPortalRegisterForm] = useState<PortalRegisterFormState>(initialPortalRegisterForm);
@@ -5120,6 +5121,7 @@ function App() {
     setShowRadicarForm(false);
     setProductosCreditoTab(tab);
     setView(`modulo:${creditModule.id}`);
+    setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -5579,17 +5581,19 @@ function App() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${sidebarOpen ? '' : ' sidebar-hidden'}`}>
       <AppSidebar
         view={view}
         onNavigateView={(targetView) => {
           setSelectedCreditoId(null);
           setView(targetView);
+          setSidebarOpen(targetView === 'dashboard');
         }}
         onNavigateModule={(modType) => {
           setSelectedCreditoId(null);
           if (modType === 'dashboard') {
             setView('dashboard');
+            setSidebarOpen(true);
             return;
           }
           if (modType === 'credito') {
@@ -5600,12 +5604,18 @@ function App() {
             const empMod = visibleUserModules.find(
               (m) => m.nombre.toLowerCase().includes('empresa') || m.nombre.toLowerCase().includes('pagadur')
             );
-            if (empMod) setView(`modulo:${empMod.id}`);
+            if (empMod) {
+              setView(`modulo:${empMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'aliado') {
             const alMod = visibleUserModules.find((m) => m.nombre.toLowerCase().includes('aliado'));
-            if (alMod) setView(`modulo:${alMod.id}`);
+            if (alMod) {
+              setView(`modulo:${alMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'comercial') {
@@ -5615,12 +5625,18 @@ function App() {
                 m.nombre.toLowerCase().includes('vendedor') ||
                 m.nombre.toLowerCase().includes('libranz')
             );
-            if (comMod) setView(`modulo:${comMod.id}`);
+            if (comMod) {
+              setView(`modulo:${comMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'socio') {
             const socMod = visibleUserModules.find((m) => m.nombre.toLowerCase().includes('socio'));
-            if (socMod) setView(`modulo:${socMod.id}`);
+            if (socMod) {
+              setView(`modulo:${socMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'seguridad') {
@@ -5631,6 +5647,7 @@ function App() {
               setView('configuracion');
               setConfigTab('roles');
             }
+            setSidebarOpen(false);
             return;
           }
         }}
@@ -5661,6 +5678,8 @@ function App() {
             searchPlaceholder="Buscar créditos, clientes, empresas..."
             themeMode={themeMode}
             onToggleTheme={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((current) => !current)}
           />
 
         {!isProductosCreditoModule && (

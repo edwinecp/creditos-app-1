@@ -95,7 +95,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     : 'ADMINISTRADOR / ANALISTA DE CRÉDITO / CONSULTOR';
 
   return (
-    <aside className="side-nav">
+    <aside className="side-nav" id="app-sidebar">
       {/* 1. Brand Block - Aligned with the left grid */}
       <div className="brand-block">
         <span className="brand-mark">CA</span>
