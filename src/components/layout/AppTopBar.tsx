@@ -14,6 +14,8 @@ export interface AppTopBarProps {
   themeMode?: 'light' | 'dark';
   onToggleTheme?: () => void;
   onNotificationClick?: () => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const AppTopBar: React.FC<AppTopBarProps> = ({
@@ -28,7 +30,9 @@ export const AppTopBar: React.FC<AppTopBarProps> = ({
   searchPlaceholder = 'Buscar créditos, clientes...',
   themeMode = 'light',
   onToggleTheme,
-  onNotificationClick
+  onNotificationClick,
+  sidebarOpen = true,
+  onToggleSidebar
 }) => {
   const getInitials = (name?: string | null) => {
     if (!name) return 'EC';
@@ -62,6 +66,23 @@ export const AppTopBar: React.FC<AppTopBarProps> = ({
 
   return (
     <header className="credit-top-bar">
+      <div className="credit-top-bar-left">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            className="sidebar-toggle-btn"
+            onClick={onToggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
+            title={sidebarOpen ? 'Ocultar menú' : 'Mostrar menú'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <line x1="9" y1="4" x2="9" y2="20" />
+            </svg>
+            <span className="sr-only">{sidebarOpen ? 'Ocultar menú' : 'Mostrar menú'}</span>
+          </button>
+        )}
       {/* Left: Breadcrumb trail */}
       <nav className="credit-breadcrumb" aria-label="Breadcrumb">
         {onRootClick ? (
@@ -84,6 +105,7 @@ export const AppTopBar: React.FC<AppTopBarProps> = ({
         {onCurrentClick ? <button type="button" className="credit-breadcrumb-current credit-breadcrumb-current-link" onClick={onCurrentClick} title="Volver al listado de solicitudes">{breadcrumbCurrent}</button> : <span className="credit-breadcrumb-current">{breadcrumbCurrent}</span>}
         {breadcrumbDetail && <><span className="credit-breadcrumb-separator">›</span><span className="credit-breadcrumb-current" aria-current="page">{breadcrumbDetail}</span></>}
       </nav>
+      </div>
 
       {/* Right: Actions, Notifications, User Profile */}
       <div className="credit-top-bar-right">

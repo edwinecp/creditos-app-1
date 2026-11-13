@@ -30,6 +30,7 @@ import { ProductFormDrawer } from './components/creditos/ProductFormDrawer';
 import { CreditRequestDrawer } from './components/creditos/CreditRequestDrawer';
 import { CreditRequestsView } from './components/creditos/CreditRequestsView';
 import { CreditDetailView } from './components/creditos/CreditDetailView';
+import { CreditSimulationView } from './components/creditos/CreditSimulationView';
 import { AppSidebar, creditSubmodules, type ProductosCreditoTab } from './components/layout/AppSidebar';
 import { AppTopBar } from './components/layout/AppTopBar';
 import {
@@ -1239,6 +1240,7 @@ function App() {
   const [carteraFilters, setCarteraFilters] = useState({ fechaInicio: '', fechaFin: '', idEmpresa: '', idProducto: '', idSocio: '', estado: '' });
   const [apiStatus, setApiStatus] = useState('Conectando a la API...');
   const [view, setView] = useState<ViewKey>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [configTab, setConfigTab] = useState<ConfigTab>('roles');
   const [authForm, setAuthForm] = useState<AuthFormState>({ username: '', password: '' });
   const [portalRegisterForm, setPortalRegisterForm] = useState<PortalRegisterFormState>(initialPortalRegisterForm);
@@ -5106,7 +5108,7 @@ function App() {
     }
   };
 
-  const handleNavigateCreditTab = (tab: ProductosCreditoTab) => {
+  const handleNavigateCreditTab = (tab: ProductosCreditoTab, options?: { keepSidebarOpen?: boolean }) => {
     const creditModule = visibleUserModules.find((module) => {
       const name = module.nombre.toLowerCase();
       return name.includes('credito') && !['comercial', 'vendedor', 'libranz', 'cartera'].some((keyword) => name.includes(keyword));
@@ -5120,6 +5122,7 @@ function App() {
     setShowRadicarForm(false);
     setProductosCreditoTab(tab);
     setView(`modulo:${creditModule.id}`);
+    if (!options?.keepSidebarOpen) setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -5579,33 +5582,41 @@ function App() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${sidebarOpen ? '' : ' sidebar-hidden'}`}>
       <AppSidebar
         view={view}
         onNavigateView={(targetView) => {
           setSelectedCreditoId(null);
           setView(targetView);
+          setSidebarOpen(targetView === 'dashboard');
         }}
         onNavigateModule={(modType) => {
           setSelectedCreditoId(null);
           if (modType === 'dashboard') {
             setView('dashboard');
+            setSidebarOpen(true);
             return;
           }
           if (modType === 'credito') {
-            handleNavigateCreditTab('solicitudes');
+            handleNavigateCreditTab('solicitudes', { keepSidebarOpen: true });
             return;
           }
           if (modType === 'empresa') {
             const empMod = visibleUserModules.find(
               (m) => m.nombre.toLowerCase().includes('empresa') || m.nombre.toLowerCase().includes('pagadur')
             );
-            if (empMod) setView(`modulo:${empMod.id}`);
+            if (empMod) {
+              setView(`modulo:${empMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'aliado') {
             const alMod = visibleUserModules.find((m) => m.nombre.toLowerCase().includes('aliado'));
-            if (alMod) setView(`modulo:${alMod.id}`);
+            if (alMod) {
+              setView(`modulo:${alMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'comercial') {
@@ -5615,12 +5626,18 @@ function App() {
                 m.nombre.toLowerCase().includes('vendedor') ||
                 m.nombre.toLowerCase().includes('libranz')
             );
-            if (comMod) setView(`modulo:${comMod.id}`);
+            if (comMod) {
+              setView(`modulo:${comMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'socio') {
             const socMod = visibleUserModules.find((m) => m.nombre.toLowerCase().includes('socio'));
-            if (socMod) setView(`modulo:${socMod.id}`);
+            if (socMod) {
+              setView(`modulo:${socMod.id}`);
+              setSidebarOpen(false);
+            }
             return;
           }
           if (modType === 'seguridad') {
@@ -5631,6 +5648,7 @@ function App() {
               setView('configuracion');
               setConfigTab('roles');
             }
+            setSidebarOpen(false);
             return;
           }
         }}
@@ -5661,6 +5679,8 @@ function App() {
             searchPlaceholder="Buscar créditos, clientes, empresas..."
             themeMode={themeMode}
             onToggleTheme={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((current) => !current)}
           />
 
         {!isProductosCreditoModule && (
@@ -7570,7 +7590,7 @@ function App() {
 
         {selectedModule && isProductosCreditoModule && (
           <section className="socios-view">
-            {productosCreditoTab !== 'convenios' && productosCreditoTab !== 'documentos' && productosCreditoTab !== 'atributos' && productosCreditoTab !== 'solicitudes' && productosCreditoTab !== 'general' && productosCreditoTab !== 'parametros' && productosCreditoTab !== 'tblAtributos' && productosCreditoTab !== 'formatos' && productosCreditoTab !== 'tasas' && productosCreditoTab !== 'plazos' && productosCreditoTab !== 'bancos' && (
+            {productosCreditoTab !== 'convenios' && productosCreditoTab !== 'documentos' && productosCreditoTab !== 'atributos' && productosCreditoTab !== 'solicitudes' && productosCreditoTab !== 'simulacion' && productosCreditoTab !== 'general' && productosCreditoTab !== 'parametros' && productosCreditoTab !== 'tblAtributos' && productosCreditoTab !== 'formatos' && productosCreditoTab !== 'tasas' && productosCreditoTab !== 'plazos' && productosCreditoTab !== 'bancos' && (
               <div className="product-context-bar">
                 <div>
                   <span className="section-kicker">Producto en configuracion</span>
@@ -7648,6 +7668,10 @@ function App() {
                   />}
                 </CreditRequestsView>
               )
+            )}
+
+            {productosCreditoTab === 'simulacion' && session && (
+              <CreditSimulationView token={session.token} />
             )}
 
             {productosCreditoTab === 'general' && (
