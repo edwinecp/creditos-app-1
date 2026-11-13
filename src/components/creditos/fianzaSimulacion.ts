@@ -1,4 +1,4 @@
-import { calcularProducto, type AtributoCalculo } from '../../../../ms-creditos-app/src/modules/creditos/calculo-producto.js';
+import { calcularProducto, type AtributoCalculo } from './calculo-producto';
 import {
   api,
   type FormulaCalculoRow,
