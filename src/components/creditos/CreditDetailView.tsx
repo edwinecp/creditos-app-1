@@ -467,9 +467,21 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                           <td>
                             <div className="doc-name-cell">
                               <span className="doc-name-title">{item.documento}</span>
-                              {item.archivoNombre && (
-                                <span className="doc-name-file">📎 {item.archivoNombre}</span>
-                              )}
+                              {item.archivoNombre ? (
+                                <span className="doc-name-file">
+                                  📎 {item.archivoNombre}
+                                  {item.archivoUrl?.startsWith('data:') && (
+                                    <span style={{ marginLeft: '6px', fontSize: '10px', color: '#059669', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px' }}>Base64 Supabase</span>
+                                  )}
+                                  {item.archivoUrl && !item.archivoUrl.startsWith('data:') && (
+                                    <span style={{ marginLeft: '6px', fontSize: '10px', color: '#ea580c', background: '#fff7ed', padding: '1px 5px', borderRadius: '4px' }}>AWS S3</span>
+                                  )}
+                                </span>
+                              ) : item.archivoUrl ? (
+                                <span className="doc-name-file">
+                                  {item.archivoUrl.startsWith('data:') ? '⚡ Base64 en Supabase' : '☁️ Archivo en AWS S3'}
+                                </span>
+                              ) : null}
                             </div>
                           </td>
                           <td>
@@ -494,7 +506,7 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                             </span>
                           </td>
                           <td>
-                            {item.archivoNombre ? (
+                            {item.archivoNombre || item.archivoUrl ? (
                               credito.fechaRadicacion?.slice(0, 10) || '—'
                             ) : (
                               '-'
@@ -517,7 +529,7 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                                 }}
                               />
 
-                              {!item.archivoNombre && !isDocSigned ? (
+                              {!item.archivoNombre && !item.archivoUrl && !isDocSigned ? (
                                 <>
                                   <button
                                     type="button"

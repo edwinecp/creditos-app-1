@@ -4,6 +4,7 @@ import {
   Plug,
   ShieldCheck,
   FileCheck2,
+  Cloud,
   Plus,
   Pencil,
   Search,
@@ -792,6 +793,7 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                 const isJumio = cat.codigo === 'JUMIO';
                 const isDocuSign = cat.codigo === 'DOCUSIGN';
                 const isDidit = cat.codigo === 'DIDIT';
+                const isAwsS3 = cat.codigo === 'AWS_S3';
                 const isActive = form.ind_activo ?? false;
                 const showSecret = showSecretMap[cat.id_integracion] || false;
                 const isSaving = savingIntegracionId === cat.id_integracion;
@@ -802,10 +804,12 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                     style={{
                       background: '#ffffff',
                       borderRadius: '16px',
-                      border: `1px solid ${isActive ? (isDidit ? '#c4b5fd' : '#93c5fd') : '#e2e8f0'}`,
+                      border: `1px solid ${isActive ? (isDidit ? '#c4b5fd' : isAwsS3 ? '#fdba74' : '#93c5fd') : '#e2e8f0'}`,
                       boxShadow: isActive
                         ? isDidit
                           ? '0 4px 20px rgba(124, 58, 237, 0.1)'
+                          : isAwsS3
+                          ? '0 4px 20px rgba(234, 88, 12, 0.12)'
                           : '0 4px 20px rgba(37, 99, 235, 0.08)'
                         : '0 1px 3px rgba(0,0,0,0.04)',
                       overflow: 'hidden',
@@ -836,6 +840,8 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                               ? 'linear-gradient(135deg, #dc2626, #ef4444)'
                               : isDidit
                               ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                              : isAwsS3
+                              ? 'linear-gradient(135deg, #f97316, #ea580c)'
                               : 'linear-gradient(135deg, #4f46e5, #6366f1)',
                             display: 'flex',
                             alignItems: 'center',
@@ -843,7 +849,7 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                             color: '#ffffff'
                           }}
                         >
-                          {isJumio ? <ShieldCheck size={22} /> : isDocuSign ? <FileCheck2 size={22} /> : isDidit ? <ShieldCheck size={22} /> : <Plug size={22} />}
+                          {isJumio ? <ShieldCheck size={22} /> : isDocuSign ? <FileCheck2 size={22} /> : isDidit ? <ShieldCheck size={22} /> : isAwsS3 ? <Cloud size={22} /> : <Plug size={22} />}
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -852,8 +858,8 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                             </h3>
                             <span
                               style={{
-                                background: isDidit ? '#f5f3ff' : '#f1f5f9',
-                                color: isDidit ? '#7c3aed' : '#475569',
+                                background: isDidit ? '#f5f3ff' : isAwsS3 ? '#fff7ed' : '#f1f5f9',
+                                color: isDidit ? '#7c3aed' : isAwsS3 ? '#c2410c' : '#475569',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                                 fontSize: '10px',
@@ -909,7 +915,7 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                       {/* Status summary */}
                       <div
                         style={{
-                          background: isActive ? (isDidit ? '#faf5ff' : '#eff6ff') : '#f8fafc',
+                          background: isActive ? (isDidit ? '#faf5ff' : isAwsS3 ? '#fff7ed' : '#eff6ff') : '#f8fafc',
                           borderRadius: '10px',
                           padding: '10px 14px',
                           display: 'flex',
@@ -924,12 +930,16 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                               width: '8px',
                               height: '8px',
                               borderRadius: '50%',
-                              background: isActive ? (isDidit ? '#7c3aed' : '#2563eb') : '#94a3b8'
+                              background: isActive ? (isDidit ? '#7c3aed' : isAwsS3 ? '#ea580c' : '#2563eb') : '#94a3b8'
                             }}
                           />
                           <span style={{ fontWeight: 600, color: '#334155' }}>
                             {isActive
-                              ? `Enrutamiento automático a ${cat.nombre}`
+                              ? isAwsS3
+                                ? 'Almacenamiento activo en AWS S3 (Bucket conectado)'
+                                : `Enrutamiento automático a ${cat.nombre}`
+                              : isAwsS3
+                              ? 'Modo seguro: Documentos en base64 en Supabase (S3 desactivado)'
                               : isJumio || isDidit
                               ? 'Modo fallback: Carga manual de documentos'
                               : 'Servicio deshabilitado'}
@@ -995,14 +1005,14 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                         </div>
                       </div>
 
-                      {/* Client ID / Workflow ID */}
+                      {/* Client ID / Workflow ID / Access Key ID */}
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          {isJumio ? 'API Token / Client ID' : isDocuSign ? 'Integration Key (Client ID)' : isDidit ? 'Didit Workflow ID (UUID)' : 'Client ID'}
+                          {isAwsS3 ? 'AWS Access Key ID' : isJumio ? 'API Token / Client ID' : isDocuSign ? 'Integration Key (Client ID)' : isDidit ? 'Didit Workflow ID (UUID)' : 'Client ID'}
                         </label>
                         <input
                           type="text"
-                          placeholder={isJumio ? 'Ej: 9b1deb4d-3b7d-4bad-9bdd-...' : isDocuSign ? 'Ej: 7a68e8c8-...' : isDidit ? 'Ej: e42a2607-2f9f-475e-a5b8-0cbfc0213b06' : 'Client ID'}
+                          placeholder={isAwsS3 ? 'Ej: AKIAIOSFODNN7EXAMPLE' : isJumio ? 'Ej: 9b1deb4d-3b7d-4bad-9bdd-...' : isDocuSign ? 'Ej: 7a68e8c8-...' : isDidit ? 'Ej: e42a2607-2f9f-475e-a5b8-0cbfc0213b06' : 'Client ID'}
                           value={form.client_id || ''}
                           onChange={(e) =>
                             setIntegracionForms({
@@ -1073,10 +1083,10 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                         </div>
                       )}
 
-                      {/* Client Secret / Webhook Secret */}
+                      {/* Client Secret / Webhook Secret / AWS Secret Key */}
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          {isJumio ? 'API Secret / Key' : isDocuSign ? 'Secret Key (HMAC / RSA)' : isDidit ? 'Webhook Secret (HMAC SHA-256)' : 'Client Secret'}
+                          {isAwsS3 ? 'AWS Secret Access Key' : isJumio ? 'API Secret / Key' : isDocuSign ? 'Secret Key (HMAC / RSA)' : isDidit ? 'Webhook Secret (HMAC SHA-256)' : 'Client Secret'}
                         </label>
                         <div style={{ position: 'relative' }}>
                           <input
@@ -1123,15 +1133,15 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                         </div>
                       </div>
 
-                      {/* Account ID / Extra param if DocuSign */}
-                      {isDocuSign && (
+                      {/* Account ID / Extra param if DocuSign or AWS S3 */}
+                      {(isDocuSign || isAwsS3) && (
                         <div>
                           <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            DocuSign Account ID (API GUID)
+                            {isAwsS3 ? 'Nombre del Bucket S3' : 'DocuSign Account ID (API GUID)'}
                           </label>
                           <input
                             type="text"
-                            placeholder="Ej: f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                            placeholder={isAwsS3 ? 'Ej: s3-demo-financiera-009040764532-us-east-2-an' : 'Ej: f47ac10b-58cc-4372-a567-0e02b2c3d479'}
                             value={form.account_id || ''}
                             onChange={(e) =>
                               setIntegracionForms({
@@ -1151,14 +1161,14 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                         </div>
                       )}
 
-                      {/* Base URL / Datacenter */}
+                      {/* Base URL / Region */}
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          URL Base Endpoint
+                          {isAwsS3 ? 'Región AWS (o URL Endpoint S3)' : 'URL Base Endpoint'}
                         </label>
                         <input
                           type="text"
-                          placeholder={cat.url_base || (isDidit ? 'https://verification.didit.me/v3' : 'https://api.servicio.com')}
+                          placeholder={isAwsS3 ? 'Ej: us-east-2' : cat.url_base || (isDidit ? 'https://verification.didit.me/v3' : 'https://api.servicio.com')}
                           value={form.url_base || ''}
                           onChange={(e) =>
                             setIntegracionForms({
@@ -1176,30 +1186,39 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                         />
                       </div>
 
-                      {/* Webhook URL */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          URL de Notificación Webhook
-                        </label>
-                        <input
-                          type="text"
-                          placeholder={isDidit ? 'https://ms-creditos-app-weld.vercel.app/api/v1/portal/didit/webhook' : 'https://ms-creditos-app-weld.vercel.app/api/v1/...'}
-                          value={form.webhook_url || ''}
-                          onChange={(e) =>
-                            setIntegracionForms({
-                              ...integracionForms,
-                              [cat.id_integracion]: { ...form, webhook_url: e.target.value }
-                            })
-                          }
-                          style={{
-                            width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            border: '1px solid #cbd5e1',
-                            fontSize: '12px'
-                          }}
-                        />
-                      </div>
+                      {/* Webhook URL (no aplica para AWS S3) */}
+                      {!isAwsS3 && (
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            URL de Notificación Webhook
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={isDidit ? 'https://ms-creditos-app-weld.vercel.app/api/v1/portal/didit/webhook' : 'https://ms-creditos-app-weld.vercel.app/api/v1/...'}
+                            value={form.webhook_url || ''}
+                            onChange={(e) =>
+                              setIntegracionForms({
+                                ...integracionForms,
+                                [cat.id_integracion]: { ...form, webhook_url: e.target.value }
+                              })
+                            }
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '12px'
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Callout descriptivo para AWS S3 */}
+                      {isAwsS3 && (
+                        <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '10px 14px', fontSize: '11px', color: '#9a3412', lineHeight: '1.45' }}>
+                          ☁️ <strong>Almacenamiento Dual S3 / Supabase:</strong> Cuando esta integración está <strong>Activada</strong>, los documentos de créditos, fotos biométricas y expedientes se respaldan directamente en tu bucket de Amazon S3. Si está <strong>Desactivada</strong>, se guardan automáticamente como <strong>URLs base64</strong> en Supabase sin depender de AWS.
+                        </div>
+                      )}
                     </div>
 
                     {/* Card Footer */}
@@ -1226,7 +1245,7 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          background: '#2563eb',
+                          background: isAwsS3 ? '#ea580c' : '#2563eb',
                           color: '#ffffff',
                           border: 'none',
                           padding: '7px 14px',
@@ -1309,7 +1328,7 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
               <tbody>
                 {catalogoIntegraciones.map((cat) => (
                   <tr key={cat.id_integracion} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: cat.codigo === 'DIDIT' ? '#7c3aed' : '#2563eb' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: cat.codigo === 'DIDIT' ? '#7c3aed' : cat.codigo === 'AWS_S3' ? '#ea580c' : '#2563eb' }}>
                       {cat.codigo}
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0f172a' }}>
@@ -1318,9 +1337,9 @@ export const FinancierasIntegracionesView: React.FC<Props> = ({ token, notify })
                     <td style={{ padding: '12px 16px' }}>
                       <span
                         style={{
-                          background: cat.codigo === 'DIDIT' ? '#f5f3ff' : '#f1f5f9',
-                          color: cat.codigo === 'DIDIT' ? '#7c3aed' : '#475569',
-                          border: cat.codigo === 'DIDIT' ? '1px solid #ddd6fe' : 'none',
+                          background: cat.codigo === 'DIDIT' ? '#f5f3ff' : cat.codigo === 'AWS_S3' ? '#fff7ed' : '#f1f5f9',
+                          color: cat.codigo === 'DIDIT' ? '#7c3aed' : cat.codigo === 'AWS_S3' ? '#c2410c' : '#475569',
+                          border: cat.codigo === 'DIDIT' ? '1px solid #ddd6fe' : cat.codigo === 'AWS_S3' ? '1px solid #fed7aa' : 'none',
                           padding: '3px 8px',
                           borderRadius: '6px',
                           fontSize: '11px',
