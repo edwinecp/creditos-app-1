@@ -842,6 +842,88 @@ export type ProductosCreditoCatalogs = {
   atributosCatalogo?: AtributoCatalogoRow[];
 };
 
+export type TipoEstudio = 'LIBRANZA' | 'LIBRE_INVERSION';
+
+export type EstudioCreditoRow = {
+  id: number;
+  tipo: TipoEstudio;
+  variables: Record<string, number>;
+  porcentaje: number;
+  netoBase: number;
+  minimoVariable: number | null;
+  disponible: number;
+  cuotaMaxima: number;
+  cuotaSolicitada: number | null;
+  viable: boolean;
+  observacion: string | null;
+  usuario: string | null;
+  fecha: string;
+};
+
+export type DocumentoAdicionalRow = {
+  id: number;
+  descripcion: string;
+  nombreArchivo: string;
+  mimeType: string;
+  tamanoBytes: number;
+  almacenamiento: string;
+  rutaBucket: string | null;
+  fecha: string;
+  usuario: string | null;
+};
+
+export type VisacionExtras = {
+  ciudad: string;
+  entidadFinanciera: string;
+  entidadOperadora: string;
+  firmanteNombre: string;
+  firmanteCargo: string;
+};
+
+export type VisacionRow = {
+  id: number;
+  destinatario: string;
+  copia: string | null;
+  nombreArchivo: string;
+  enviado: boolean;
+  detalle: string | null;
+  fecha: string;
+  usuario: string | null;
+};
+
+export type VisacionInfo = {
+  datos: { consecutivo: string; empresa: string; nit: string; trabajador: string; cedula: string; cargo: string; tipoContrato: string; monto: number; cuota: number; plazo: number };
+  usaDecision: boolean;
+  faltantes: string[];
+  sugerencias: VisacionExtras & { para: string };
+  visaciones: VisacionRow[];
+};
+
+export type ModalidadDesembolso = 'EFECTIVO' | 'COMPRA_CARTERA' | 'MIXTO';
+
+export type SoporteClienteRow = {
+  id: number;
+  idCompraCartera: number | null;
+  tipo: 'CEDULA_FRENTE' | 'CEDULA_REVERSO' | 'FOTO_ROSTRO' | 'CERTIFICADO_COMPRA_CARTERA';
+  nombreArchivo: string;
+  mimeType: string;
+  tamanoBytes: number;
+  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+  observacion: string | null;
+  revisadoPor: string | null;
+  fechaRevision: string | null;
+  fechaCarga: string;
+};
+
+export type SoportesClienteResponse = {
+  modalidad: ModalidadDesembolso;
+  valorCompraCartera: number;
+  valorEfectivo: number;
+  compras: Array<{ id: number; entidad: string; valor: number }>;
+  faltantes: Array<{ tipo: SoporteClienteRow['tipo']; idCompraCartera: number | null }>;
+  soportes: SoporteClienteRow[];
+};
+
 export type CreditoRow = {
   id: number;
   consecutivo: string;
@@ -1469,6 +1551,8 @@ export const api = {
   listEmployeeCatalogs: (token: string) => request<EmployeeCatalogs>('/api/v1/empresas/catalogos-empleados', {}, token),
   listEmpresas: (token: string) => request<EmpresaRow[]>('/api/v1/empresas', {}, token),
   createEmpresa: (token: string, body: unknown) => request<EmpresaRow>('/api/v1/empresas', { method: 'POST', body: JSON.stringify(body) }, token),
+  updateEmpresa: (token: string, empresaId: number, body: unknown) =>
+    request<EmpresaRow>(`/api/v1/empresas/${empresaId}`, { method: 'PUT', body: JSON.stringify(body) }, token),
   listEmpleadosEmpresa: (token: string, empresaId: number) => request<EmpleadoEmpresaRow[]>(`/api/v1/empresas/${empresaId}/empleados`, {}, token),
   createEmpleadoEmpresa: (token: string, empresaId: number, body: unknown) =>
     request<EmpleadoEmpresaRow>(`/api/v1/empresas/${empresaId}/empleados`, { method: 'POST', body: JSON.stringify(body) }, token),
@@ -1609,6 +1693,56 @@ export const api = {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.message || 'No se pudo cargar el archivo');
     return payload as CreditoExpediente;
+  },
+  listEstudiosCredito: (token: string, creditoId: number) => request<EstudioCreditoRow[]>(`/api/v1/creditos/${creditoId}/estudios`, {}, token),
+  registrarEstudioCredito: (token: string, creditoId: number, body: { tipo: TipoEstudio; variables: Record<string, number>; porcentaje: number; observacion?: string }) =>
+    request<EstudioCreditoRow[]>(`/api/v1/creditos/${creditoId}/estudios`, { method: 'POST', body: JSON.stringify(body) }, token),
+  listDocumentosAdicionales: (token: string, creditoId: number) =>
+    request<DocumentoAdicionalRow[]>(`/api/v1/creditos/${creditoId}/documentos-adicionales`, {}, token),
+  subirDocumentoAdicional: async (token: string, creditoId: number, descripcion: string, file: File) => {
+    const data = new FormData();
+    data.append('descripcion', descripcion); // must precede the file so the server reads it
+    data.append('file', file);
+    const response = await fetch(`${API_URL}/api/v1/creditos/${creditoId}/documentos-adicionales`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: data
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.message || 'No se pudo cargar el documento');
+    return payload as DocumentoAdicionalRow[];
+  },
+  getDocumentoAdicionalArchivo: async (token: string, documentoId: number) => {
+    const response = await fetch(`${API_URL}/api/v1/creditos/documentos-adicionales/${documentoId}/archivo`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) throw new Error('No se pudo abrir el documento');
+    return response.blob();
+  },
+  getVisacion: (token: string, creditoId: number) => request<VisacionInfo>(`/api/v1/creditos/${creditoId}/visacion`, {}, token),
+  previewVisacion: async (token: string, creditoId: number, extras: VisacionExtras) => {
+    const response = await fetch(`${API_URL}/api/v1/creditos/${creditoId}/visacion/preview`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(extras)
+    });
+    if (!response.ok) throw new Error((await response.json().catch(() => null))?.message || 'No se pudo generar la carta');
+    return response.blob();
+  },
+  enviarVisacion: (token: string, creditoId: number, body: { para: string; copia?: string; mensaje?: string; extras: VisacionExtras }) =>
+    request<{ enviado: boolean; detalle: string; visaciones: VisacionRow[] }>(`/api/v1/creditos/${creditoId}/visacion/enviar`, { method: 'POST', body: JSON.stringify(body) }, token),
+  getVisacionPdf: async (token: string, visacionId: number) => {
+    const response = await fetch(`${API_URL}/api/v1/creditos/visaciones/${visacionId}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) throw new Error('No se pudo abrir la carta');
+    return response.blob();
+  },
+  listSoportesCliente: (token: string, creditoId: number) => request<SoportesClienteResponse>(`/api/v1/creditos/${creditoId}/soportes-cliente`, {}, token),
+  revisarSoporteCliente: (token: string, soporteId: number, body: { estado: 'APROBADO' | 'RECHAZADO'; observacion?: string }) =>
+    request<SoportesClienteResponse>(`/api/v1/creditos/soportes-cliente/${soporteId}`, { method: 'PATCH', body: JSON.stringify(body) }, token),
+  getSoporteClienteArchivo: async (token: string, soporteId: number) => {
+    const response = await fetch(`${API_URL}/api/v1/creditos/soportes-cliente/${soporteId}/archivo`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('No se pudo abrir el archivo');
+    return response.blob();
   },
   getCreditoDocumentoArchivo: async (token: string, documentoId: number) => {
     const response = await fetch(`${API_URL}/api/v1/creditos/documentos/${documentoId}/archivo`, {

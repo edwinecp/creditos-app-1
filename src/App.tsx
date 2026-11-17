@@ -1297,6 +1297,7 @@ function App() {
   const [moduleForm, setModuleForm] = useState<ModuleFormState>(initialModuleForm);
   const [submoduleForm, setSubmoduleForm] = useState<SubmoduleFormState>(initialSubmoduleForm);
   const [empresaForm, setEmpresaForm] = useState<EmpresaFormState>(initialEmpresaForm);
+  const [editingEmpresa, setEditingEmpresa] = useState<EmpresaRow | null>(null);
   const [empleadoForm, setEmpleadoForm] = useState<EmpleadoFormState>(initialEmpleadoForm);
   const [empresas, setEmpresas] = useState<EmpresaRow[]>([]);
   const [empleadosEmpresa, setEmpleadosEmpresa] = useState<EmpleadoEmpresaRow[]>([]);
@@ -3040,6 +3041,55 @@ function App() {
     }
   };
 
+  const startEditEmpresa = (empresa: EmpresaRow) => {
+    const text = (value: string | number | null | undefined) => (value == null ? '' : String(value));
+    const date = (value: string | null) => (value ? value.slice(0, 10) : '');
+    setEmpresaForm({
+      ...initialEmpresaForm,
+      nit: empresa.nit,
+      razonSocial: empresa.razonSocial,
+      vendedor: text(empresa.vendedor),
+      domicilio: text(empresa.domicilio),
+      correo: text(empresa.correo),
+      telefono: text(empresa.telefono),
+      representanteLegal: text(empresa.representanteLegal),
+      telefonoRepresentante: text(empresa.telefonoRepresentante),
+      tipoIdentificacionRepresentante: text(empresa.tipoIdentificacionRepresentante),
+      identificacionRepresentante: text(empresa.identificacionRepresentante),
+      correoRepresentante: text(empresa.correoRepresentante),
+      codigo: text(empresa.codigo),
+      contactoCargo: text(empresa.contactoCargo),
+      contactoNombre: text(empresa.contactoNombre),
+      contactoCorreo: text(empresa.contactoCorreo),
+      contactoTelefono: text(empresa.contactoTelefono),
+      fechaConstitucion: date(empresa.fechaConstitucion),
+      capitalSociedad: text(empresa.capitalSociedad),
+      fechaVenta: date(empresa.fechaVenta),
+      ventasFecha: text(empresa.ventasFecha),
+      naturaleza: text(empresa.naturaleza),
+      camaraNumero: text(empresa.camaraNumero),
+      camaraLibro: text(empresa.camaraLibro),
+      camaraCiudad: text(empresa.camaraCiudad),
+      periodicidadNomina: empresa.periodicidadNomina || initialEmpresaForm.periodicidadNomina,
+      diaCorteNomina: text(empresa.diaCorteNomina),
+      diaPagoNomina: text(empresa.diaPagoNomina),
+      segundoDiaPagoNomina: text(empresa.segundoDiaPagoNomina),
+      diaDescuentoLibranza: text(empresa.diaDescuentoLibranza),
+      ajustarFinSemana: empresa.ajustarFinSemana ?? true,
+      observacionCalendario: text(empresa.observacionCalendario)
+    });
+    setCitySearch('');
+    setEditingEmpresa(empresa);
+    setEmpresaTab('registro');
+  };
+
+  const cancelEditEmpresa = () => {
+    setEditingEmpresa(null);
+    setEmpresaForm(initialEmpresaForm);
+    setCitySearch('');
+    setEmpresaTab('directorio');
+  };
+
   const handleCreateEmpresa = async (event: FormEvent) => {
     event.preventDefault();
     if (!session) return;
@@ -3048,7 +3098,7 @@ function App() {
     setMessage('');
 
     try {
-      const created = await api.createEmpresa(session.token, {
+      const payload = {
         ...empresaForm,
         capitalSociedad: empresaForm.capitalSociedad ? Number(empresaForm.capitalSociedad) : null,
         ventasFecha: empresaForm.ventasFecha ? Number(empresaForm.ventasFecha) : null,
@@ -3056,15 +3106,23 @@ function App() {
         diaPagoNomina: empresaForm.diaPagoNomina ? Number(empresaForm.diaPagoNomina) : null,
         segundoDiaPagoNomina: empresaForm.segundoDiaPagoNomina ? Number(empresaForm.segundoDiaPagoNomina) : null,
         diaDescuentoLibranza: empresaForm.diaDescuentoLibranza ? Number(empresaForm.diaDescuentoLibranza) : null,
+        // null keeps the current address on update (backend only rewrites it when sent)
         direccion: buildDireccionPayload()
-      });
+      };
+      const saved = editingEmpresa
+        ? await api.updateEmpresa(session.token, editingEmpresa.id, payload)
+        : await api.createEmpresa(session.token, payload);
       setEmpresaForm(initialEmpresaForm);
       setCitySearch('');
       await reloadEmpresasData();
-      setSelectedEmpresaId(created.id);
-      setMessage('Empresa creada correctamente');
+      setSelectedEmpresaId(saved.id);
+      if (editingEmpresa) {
+        setEditingEmpresa(null);
+        setEmpresaTab('directorio');
+      }
+      setMessage(editingEmpresa ? 'Empresa actualizada correctamente' : 'Empresa creada correctamente');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo crear la empresa');
+      setMessage(error instanceof Error ? error.message : editingEmpresa ? 'No se pudo actualizar la empresa' : 'No se pudo crear la empresa');
     } finally {
       setLoading(false);
     }
@@ -4554,9 +4612,9 @@ function App() {
       const refreshed = await api.listCreditos(session.token);
       setCreditos(refreshed);
       setSelectedCreditoId(selectedCreditoId);
-      setMessage('Etapa actualizada');
+      notify(estado === 'APROBADA' ? 'Etapa aprobada' : 'Etapa actualizada', 'success');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo actualizar la etapa');
+      notify(error instanceof Error ? error.message : 'No se pudo actualizar la etapa', 'error');
     } finally {
       setLoading(false);
     }
@@ -5143,7 +5201,7 @@ function App() {
     }
     if (isEmpresasModule) {
       const sub =
-        empresaTab === 'registro' ? 'Crear empresa' : empresaTab === 'directorio' ? 'Directorio de empresas' : 'Empleados';
+        empresaTab === 'registro' ? (editingEmpresa ? 'Editar empresa' : 'Crear empresa') : empresaTab === 'directorio' ? 'Directorio de empresas' : 'Empleados';
       return { root: 'Empresas', current: sub };
     }
     if (isAliadosModule) {
@@ -5922,8 +5980,16 @@ function App() {
             {empresaTab === 'registro' && (
               <form className="surface pagaduria-form" onSubmit={handleCreateEmpresa}>
                 <div className="surface-title">
-                  <h2>Crear empresa</h2>
+                  <h2>{editingEmpresa ? `Editar empresa · ${editingEmpresa.razonSocial}` : 'Crear empresa'}</h2>
+                  {editingEmpresa && (
+                    <button type="button" className="ghost-button" onClick={cancelEditEmpresa}>Cancelar edición</button>
+                  )}
                 </div>
+                {editingEmpresa && (
+                  <p className="muted-note">
+                    Dirección actual: <strong>{editingEmpresa.direccionCompuesta ?? editingEmpresa.domicilio ?? 'Sin dirección'}</strong>. Deja los campos de dirección vacíos para conservarla, o llénalos para reemplazarla.
+                  </p>
+                )}
 
                 <FormStepper
                   steps={[
@@ -6305,7 +6371,12 @@ function App() {
                 <section className="surface company-detail">
                   <div className="surface-title">
                     <h2>{selectedEmpresa?.razonSocial ?? 'Detalle de empresa'}</h2>
-                    <span>{selectedEmpresa?.estado ?? 'Sin seleccion'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span>{selectedEmpresa?.estado ?? 'Sin seleccion'}</span>
+                      {selectedEmpresa && (
+                        <button type="button" onClick={() => startEditEmpresa(selectedEmpresa)}>Editar empresa</button>
+                      )}
+                    </div>
                   </div>
                   {selectedEmpresa ? (
                     <div className="detail-sections">
@@ -8903,7 +8974,11 @@ function App() {
           onSubmit={handleSendDocumentsSubmit}
         />}
 
-        <p className="message-line">{message}</p>
+        {message && (
+          <div className="app-toast">
+            <FeedbackAlert message={message} tone={messageTone} onDismiss={() => setMessage('')} />
+          </div>
+        )}
       </main>
     </div>
   );
