@@ -14,6 +14,7 @@ import { CreditHistoryDrawer } from './CreditHistoryDrawer';
 import { EstudioCreditoPanel } from './EstudioCreditoPanel';
 import { SoportesClientePanel } from './SoportesClientePanel';
 import { RadicacionResumen } from './RadicacionResumen';
+import { DesembolsoPanel } from './DesembolsoPanel';
 import { VisacionPanel } from './VisacionPanel';
 import { DocumentosAdicionalesPanel } from './DocumentosAdicionalesPanel';
 import { DocuSignStateMachine } from '../docusign/DocuSignStateMachine';
@@ -91,6 +92,8 @@ export interface CreditDetailViewProps {
     comprobantePago: string;
     observacionCalendario: string;
     observacion: string;
+    idCuentaEgreso: string;
+    fechaConsignacion: string;
   };
   onChangeDesembolsoForm?: React.Dispatch<React.SetStateAction<any>>;
   onRegistrarDesembolso?: () => Promise<void>;
@@ -105,9 +108,12 @@ export interface CreditDetailViewProps {
   documentTemplates?: DocumentTemplateRow[];
   onOpenFirmaPdf?: (id: number) => Promise<void>;
   onFirmaManualEstado?: (id: number, estado: string) => Promise<void>;
+  /** Logged-in user's permissions; stages without their creditos:etapa-* permission are read-only. */
+  permisos?: string[];
 }
 
 export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
+  permisos,
   credito,
   expediente,
   documentos,
@@ -172,11 +178,25 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
   const isStudyStage = !isClientDocsStage && (stageKey.includes('estudio') || stageKey.includes('analisis'));
   const isApprovalStage = stageKey.includes('aprob') || stageKey.includes('comite') || stageKey.includes('visacion');
   const isRadicacionStage = stageKey.includes('radic');
-  // A closed stage (approved or rejected) is shown read-only: no approvals, uploads or edits.
-  const readOnly = activeEtapa?.estadoEtapa === 'APROBADA' || activeEtapa?.estadoEtapa === 'RECHAZADA';
+  // Stage permission (same mapping and order as permisos-etapa.ts in the backend).
+  const permisoEtapa = isRadicacionStage ? 'creditos:etapa-radicacion'
+    : isClientDocsStage ? 'creditos:etapa-validacion'
+    : isStudyStage ? 'creditos:etapa-estudio'
+    : isApprovalStage ? 'creditos:etapa-visacion'
+    : stageKey.includes('desembols') ? 'creditos:etapa-desembolso'
+    : null;
+  const sinPermisoEtapa = Boolean(permisoEtapa && permisos && !permisos.includes(permisoEtapa));
+  // A closed stage (approved or rejected), or one the user's role cannot work, is shown read-only.
+  const etapaCerrada = activeEtapa?.estadoEtapa === 'APROBADA' || activeEtapa?.estadoEtapa === 'RECHAZADA';
+  const readOnly = etapaCerrada || sinPermisoEtapa;
   const needsSigningDocs = !isClientDocsStage && (stageKey.includes('document') || stageKey.includes('soporte') || stageKey.includes('firma') || isApprovalStage);
   const [soportesPendientes, setSoportesPendientes] = useState(0);
   const [estudiosCount, setEstudiosCount] = useState(0);
+  // Payroll loans: documents go to the client for signature only after the employer approved (Visación).
+  const [firmaHabilitada, setFirmaHabilitada] = useState(true);
+  useEffect(() => setFirmaHabilitada(true), [credito?.id]);
+  const firmaBloqueada = isApprovalStage && !firmaHabilitada;
+  const firmaBloqueadaTitle = 'Primero registra la aprobación de la empresa en Visación';
 
   const isDisbursementStage = useMemo(() => {
     const name = (activeEtapa?.etapa || '').toLowerCase();
@@ -300,7 +320,7 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
             <button ref={actionsTrigger} type="button" className={`credit-action-btn-secondary credit-actions-trigger ${quickActionsOpen ? 'is-open' : ''}`} aria-haspopup="menu" aria-expanded={quickActionsOpen} aria-controls={actionsId} onClick={() => setQuickActionsOpen(!quickActionsOpen)}><MoreVertical size={16} />Acciones<ChevronDown size={15} /></button>
             {quickActionsOpen && <div className="credit-actions-menu" id={actionsId} role="menu" aria-label="Acciones del crédito" ref={actionsMenu}>
               <span className="credit-actions-menu-title">ACCIONES</span>
-              <button type="button" role="menuitem" className="credit-actions-option featured" disabled={loading} onClick={() => { setQuickActionsOpen(false); onOpenSendDocumentsModal(); }}><span className="credit-actions-icon"><Mail size={22} /></span><span><strong>Enviar documentos al correo</strong><small>Se enviará un enlace seguro al cliente</small></span><ChevronRight size={17} /></button>
+              <button type="button" role="menuitem" className="credit-actions-option featured" disabled={loading || firmaBloqueada} title={firmaBloqueada ? firmaBloqueadaTitle : undefined} onClick={() => { setQuickActionsOpen(false); onOpenSendDocumentsModal(); }}><span className="credit-actions-icon"><Mail size={22} /></span><span><strong>Enviar documentos al correo</strong><small>Se enviará un enlace seguro al cliente</small></span><ChevronRight size={17} /></button>
               <button type="button" role="menuitem" className="credit-actions-option" disabled={!envelope} onClick={() => { setQuickActionsOpen(false); setActiveTab('docusign'); }}><span className="credit-actions-icon"><RefreshCw size={21} /></span><span><strong>Trazabilidad DocuSign</strong><small>{envelope ? 'Consulta el estado de firma' : 'Disponible después del primer envío'}</small></span><ChevronRight size={17} /></button>
               {envelope?.estado === 'COMPLETED' && onDownloadSignedPdf && <button type="button" role="menuitem" className="credit-actions-option" disabled={loading} onClick={() => { setQuickActionsOpen(false); void onDownloadSignedPdf(envelope.envelopeId); }}><span className="credit-actions-icon"><Download size={21} /></span><span><strong>Descargar PDF firmado</strong><small>Obtén los documentos completados</small></span><ChevronRight size={17} /></button>}
               <div className="credit-actions-separator" />
@@ -480,9 +500,9 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                   <button
                     type="button"
                     className="doc-action-btn primary"
-                    disabled={loading}
+                    disabled={loading || firmaBloqueada}
                     onClick={() => onOpenSendDocumentsModal()}
-                    title="Enviar documentos para firma electrónica por correo"
+                    title={firmaBloqueada ? firmaBloqueadaTitle : 'Enviar documentos para firma electrónica por correo'}
                     style={{ fontWeight: 700 }}
                   >
                     ✉️ Enviar documentos
@@ -728,16 +748,18 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
               </>)}
 
               {isApprovalStage && (
-                <VisacionPanel token={token} creditoId={credito.id} readOnly={readOnly} formatMoney={formatMoney} formatDateTime={formatDateTime} />
+                <VisacionPanel token={token} creditoId={credito.id} readOnly={readOnly} formatMoney={formatMoney} formatDateTime={formatDateTime} onFirmaHabilitadaChange={setFirmaHabilitada} />
               )}
 
               <DocumentosAdicionalesPanel token={token} creditoId={credito.id} readOnly={readOnly} formatDateTime={formatDateTime} />
 
               {/* Observación de la gestión box */}
               {!readOnly && <div className="stage-observation-box">
-                <label className="stage-observation-label">Observación de la gestión</label>
+                <label className="stage-observation-label" htmlFor="stage-observacion">Observación de la gestión</label>
+                <p className="stage-observation-hint">Para devolver o rechazar la etapa es obligatoria: se le envía al cliente por correo como motivo.</p>
                 <div className="stage-observation-textarea-wrap">
                   <textarea
+                    id="stage-observacion"
                     rows={2}
                     maxLength={500}
                     placeholder="Agrega una observación sobre esta etapa…"
@@ -813,47 +835,20 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                 </div>
               )}
 
-              {/* Disbursement details if stage is Desembolso */}
-              {!readOnly && isDisbursementStage && creditoDesembolsoForm && onChangeDesembolsoForm && onRegistrarDesembolso && (
-                <div style={{ margin: '0 1.5rem 1.5rem 1.5rem', padding: '1.25rem', background: 'var(--bg-soft)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
-                    Registro de Desembolso
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                    <input
-                      style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.82rem' }}
-                      value={creditoDesembolsoForm.valorDesembolso}
-                      onChange={(e) => onChangeDesembolsoForm((c: any) => ({ ...c, valorDesembolso: e.target.value }))}
-                      placeholder="Valor desembolso"
-                    />
-                    <input
-                      type="date"
-                      style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.82rem' }}
-                      value={creditoDesembolsoForm.fechaDesembolso}
-                      onChange={(e) => onChangeDesembolsoForm((c: any) => ({ ...c, fechaDesembolso: e.target.value }))}
-                    />
-                    <select
-                      style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.82rem' }}
-                      value={creditoDesembolsoForm.idInversion}
-                      onChange={(e) => onChangeDesembolsoForm((c: any) => ({ ...c, idInversion: e.target.value }))}
-                    >
-                      <option value="">Socio / Inversión fondeo</option>
-                      {fondeoDisponible.map((item) => (
-                        <option key={item.idInversion} value={item.idInversion}>
-                          {item.inversionista} - {formatMoney(item.saldoDisponible)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    className="stage-btn-primary"
-                    disabled={loading}
-                    onClick={onRegistrarDesembolso}
-                  >
-                    Registrar desembolso definitivo
-                  </button>
-                </div>
+              {isDisbursementStage && credito && creditoDesembolsoForm && onChangeDesembolsoForm && onRegistrarDesembolso && (
+                <DesembolsoPanel
+                  token={token}
+                  credito={credito}
+                  liquidacion={expediente?.liquidacionDefinitiva ?? null}
+                  desembolsos={expediente?.desembolsos ?? []}
+                  form={creditoDesembolsoForm}
+                  onChange={onChangeDesembolsoForm}
+                  onSubmit={onRegistrarDesembolso}
+                  fondeoDisponible={fondeoDisponible}
+                  readOnly={readOnly}
+                  loading={loading}
+                  formatMoney={formatMoney}
+                />
               )}
 
               {/* Bottom Sticky Action Bar */}
@@ -1027,7 +1022,12 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                 <div className="stage-footer-info">
                   <span className="stage-footer-info-icon">ℹ</span>
                   <div className="stage-footer-info-text">
-                    {readOnly ? (
+                    {sinPermisoEtapa && !etapaCerrada ? (
+                      <>
+                        <strong>Tu rol no tiene permiso para trabajar la etapa {activeEtapa ? etapaLabel(activeEtapa.etapa) : ''}.</strong>
+                        <small>Solo consulta. Un administrador puede asignarlo en Seguridad → Roles.</small>
+                      </>
+                    ) : readOnly ? (
                       <>
                         <strong>Etapa {activeEtapa?.estadoEtapa === 'APROBADA' ? 'aprobada' : 'rechazada'}{activeEtapa?.fechaFin ? ` el ${formatDateTime(activeEtapa.fechaFin)}` : ''}.</strong>
                         <small>Solo lectura: la información de esta etapa ya no se puede modificar.</small>
@@ -1045,7 +1045,8 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                   <button
                     type="button"
                     className="stage-btn-outline"
-                    disabled={loading || !activeEtapa}
+                    disabled={loading || !activeEtapa || !observacionEtapa.trim()}
+                    title={observacionEtapa.trim() ? 'Devuelve la etapa y envía el motivo al cliente por correo' : 'Escribe el motivo en la observación'}
                     onClick={() => onUpdateEtapa('DEVUELTA')}
                   >
                     Devolver
@@ -1053,7 +1054,8 @@ export const CreditDetailView: React.FC<CreditDetailViewProps> = ({
                   <button
                     type="button"
                     className="stage-btn-danger"
-                    disabled={loading || !activeEtapa}
+                    disabled={loading || !activeEtapa || !observacionEtapa.trim()}
+                    title={observacionEtapa.trim() ? 'Rechaza la etapa y envía el motivo al cliente por correo' : 'Escribe el motivo en la observación'}
                     onClick={() => onUpdateEtapa('RECHAZADA')}
                   >
                     Rechazar

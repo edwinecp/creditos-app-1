@@ -38,6 +38,38 @@ export type RoleRow = {
   montoMaximoAprobacion: number | null;
 };
 
+export type LicenciaPlataforma = {
+  plan: string | null;
+  inicio: string | null;
+  vencimiento: string | null;
+  maxUsuarios: number | null;
+  estado: 'ACTIVA' | 'SUSPENDIDA';
+  vigente: boolean;
+  motivo: string | null;
+  diasRestantes: number | null;
+  usuariosActivos: number;
+  cupoLleno: boolean;
+};
+
+export type ConfigPlataforma = {
+  nombreComercial: string;
+  razonSocial: string | null;
+  nit: string | null;
+  correoSoporte: string | null;
+  telefono: string | null;
+  colorPrimario: string;
+  colorAcento: string;
+  logoUrl: string | null;
+  urlAdmin: string | null;
+  urlPortal: string | null;
+  licencia: LicenciaPlataforma;
+  fechaActualizacion: string | null;
+};
+
+export type ConfigPlataformaInput = Omit<ConfigPlataforma, 'logoUrl' | 'fechaActualizacion' | 'licencia'> & {
+  licencia: Pick<LicenciaPlataforma, 'plan' | 'inicio' | 'vencimiento' | 'maxUsuarios' | 'estado'>;
+};
+
 export type PermissionRow = {
   id: number;
   nombre: string;
@@ -897,6 +929,27 @@ export type VisacionInfo = {
   faltantes: string[];
   sugerencias: VisacionExtras & { para: string };
   visaciones: VisacionRow[];
+  aprobacionEmpresa: AprobacionEmpresaRow | null;
+  requiereAprobacionEmpresa: boolean;
+};
+
+export type AprobacionEmpresaRow = {
+  id: number;
+  fechaAprobacion: string;
+  aprobadoPor: string;
+  cargo: string | null;
+  observacion: string | null;
+  nombreArchivo: string | null;
+  fechaRegistro: string;
+  usuario: string | null;
+};
+
+export type AprobacionEmpresaInput = {
+  fechaAprobacion: string;
+  aprobadoPor: string;
+  cargo?: string | null;
+  observacion?: string | null;
+  archivo?: { nombre: string; mimeType: string; base64: string } | null;
 };
 
 export type ModalidadDesembolso = 'EFECTIVO' | 'COMPRA_CARTERA' | 'MIXTO';
@@ -1074,10 +1127,25 @@ export type CreditoDesembolsoRow = {
   fechaOrden: string | null;
   fechaEjecucion: string | null;
   comprobantePago: string | null;
+  numeroEgreso: string | null;
+  medioPago: string | null;
+  fechaConsignacion: string | null;
   observacion: string | null;
   usuario: string | null;
   fechaRegistro: string;
 };
+
+export type CuentaEgresoRow = {
+  id: number;
+  banco: string;
+  tipoCuenta: 'AHORROS' | 'CORRIENTE';
+  numeroCuenta: string;
+  titular: string | null;
+  activo: boolean;
+  etiqueta: string;
+};
+
+export type CuentaEgresoInput = Pick<CuentaEgresoRow, 'banco' | 'tipoCuenta' | 'numeroCuenta' | 'titular' | 'activo'>;
 
 export type CreditoFondeoRow = {
   id: number;
@@ -1421,9 +1489,9 @@ export type PortalCreditosResponse = {
   }>;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+export const API_URL = import.meta.env.VITE_API_URL || "";
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string) {
+export async function request<T>(path: string, options: RequestInit = {}, token?: string) {
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -1531,6 +1599,11 @@ export const api = {
   me: (token: string) => request<SecurityUser>('/api/v1/security/auth/me', {}, token),
   listUsers: (token: string) => request<UserRow[]>('/api/v1/security/usuarios', {}, token),
   listRoles: (token: string) => request<RoleRow[]>('/api/v1/security/roles', {}, token),
+  getPlataformaConfig: (token: string) => request<ConfigPlataforma>('/api/v1/plataforma/config', {}, token),
+  savePlataformaConfig: (token: string, body: ConfigPlataformaInput) =>
+    request<ConfigPlataforma>('/api/v1/plataforma/config', { method: 'PUT', body: JSON.stringify(body) }, token),
+  savePlataformaLogo: (token: string, archivo: { mimeType: string; base64: string } | null) =>
+    request<ConfigPlataforma>('/api/v1/plataforma/logo', { method: 'PUT', body: JSON.stringify({ archivo }) }, token),
   listPermissions: (token: string) => request<PermissionRow[]>('/api/v1/security/permisos', {}, token),
   listCatalogModules: (token: string) => request<CatalogModule[]>('/api/v1/security/catalogo/modulos', {}, token),
   listMyModules: (token: string) => request<CatalogModule[]>('/api/v1/security/catalogo/mis-modulos', {}, token),
@@ -1543,6 +1616,7 @@ export const api = {
     request<CatalogSubmodule>('/api/v1/security/submodulos', { method: 'POST', body: JSON.stringify(body) }, token),
   updateUserRoles: (token: string, userId: number, roleIds: number[]) =>
     request<{ updated: boolean }>(`/api/v1/security/usuarios/${userId}/roles`, { method: 'PUT', body: JSON.stringify({ roleIds }) }, token),
+  getRolePermissions: (token: string, roleId: number) => request<PermissionRow[]>(`/api/v1/security/roles/${roleId}/permisos`, {}, token),
   updateRolePermissions: (token: string, roleId: number, permissionIds: number[]) =>
     request<{ updated: boolean }>(`/api/v1/security/roles/${roleId}/permisos`, { method: 'PUT', body: JSON.stringify({ permissionIds }) }, token),
   updatePassword: (token: string, userId: number, contrasena: string) =>
@@ -1646,6 +1720,11 @@ export const api = {
     request<CreditoExpediente>(`/api/v1/creditos/${creditoId}/decision`, { method: 'POST', body: JSON.stringify(body) }, token),
   registrarDesembolso: (token: string, creditoId: number, body: unknown) =>
     request<CreditoExpediente>(`/api/v1/creditos/${creditoId}/desembolso`, { method: 'POST', body: JSON.stringify(body) }, token),
+  listCuentasEgreso: (token: string, activas = false) =>
+    request<CuentaEgresoRow[]>(`/api/v1/creditos/cuentas-egreso${activas ? '?activas=true' : ''}`, {}, token),
+  guardarCuentaEgreso: (token: string, body: CuentaEgresoInput, id?: number) =>
+    request<CuentaEgresoRow>(`/api/v1/creditos/cuentas-egreso${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }, token),
+  siguienteNumeroEgreso: (token: string) => request<{ numeroEgreso: string }>('/api/v1/creditos/egresos/siguiente', {}, token),
   anularDesembolsoCredito: (token: string, desembolsoId: number, body: unknown) =>
     request<CreditoExpediente>(`/api/v1/creditos/desembolsos/${desembolsoId}/anulacion`, { method: 'POST', body: JSON.stringify(body) }, token),
   causarCredito: (token: string, creditoId: number, body: unknown) =>
@@ -1729,6 +1808,13 @@ export const api = {
   },
   enviarVisacion: (token: string, creditoId: number, body: { para: string; copia?: string; mensaje?: string; extras: VisacionExtras }) =>
     request<{ enviado: boolean; detalle: string; visaciones: VisacionRow[] }>(`/api/v1/creditos/${creditoId}/visacion/enviar`, { method: 'POST', body: JSON.stringify(body) }, token),
+  registrarAprobacionEmpresa: (token: string, creditoId: number, body: AprobacionEmpresaInput) =>
+    request<AprobacionEmpresaRow>(`/api/v1/creditos/${creditoId}/visacion/aprobacion-empresa`, { method: 'POST', body: JSON.stringify(body) }, token),
+  getAprobacionEmpresaArchivo: async (token: string, aprobacionId: number) => {
+    const response = await fetch(`${API_URL}/api/v1/creditos/aprobaciones-empresa/${aprobacionId}/archivo`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) throw new Error('No se pudo abrir el soporte de la empresa');
+    return response.blob();
+  },
   getVisacionPdf: async (token: string, visacionId: number) => {
     const response = await fetch(`${API_URL}/api/v1/creditos/visaciones/${visacionId}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) throw new Error('No se pudo abrir la carta');

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, FileCheck2, Check, X } from 'lucide-react';
 import { api, type SoporteClienteRow, type SoportesClienteResponse } from '../../api';
+import { openDocument } from '../DocumentViewer';
 
 type Props = {
   token: string;
@@ -55,9 +56,7 @@ export const SoportesClientePanel: React.FC<Props> = ({ token, creditoId, readOn
 
   const abrir = async (soporte: SoporteClienteRow) => {
     try {
-      const url = URL.createObjectURL(await api.getSoporteClienteArchivo(token, soporte.id));
-      window.open(url, '_blank', 'noopener,noreferrer');
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      openDocument(await api.getSoporteClienteArchivo(token, soporte.id), soporte.nombreArchivo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo abrir el archivo');
     }
@@ -109,7 +108,7 @@ export const SoportesClientePanel: React.FC<Props> = ({ token, creditoId, readOn
                     <td>
                       {rejecting === soporte.id ? (
                         <div className="soporte-reject">
-                          <input autoFocus value={motivo} onChange={(event) => setMotivo(event.target.value)} placeholder="Motivo del rechazo" aria-label="Motivo del rechazo" />
+                          <input autoFocus value={motivo} onChange={(event) => setMotivo(event.target.value)} placeholder="Motivo del rechazo (se envía al cliente por correo)" aria-label="Motivo del rechazo" />
                           <button type="button" className="stage-btn-danger" disabled={busy || !motivo.trim()} onClick={() => revisar(soporte, 'RECHAZADO')}>Rechazar</button>
                           <button type="button" className="stage-btn-outline" onClick={() => { setRejecting(null); setMotivo(''); }}>Cancelar</button>
                         </div>

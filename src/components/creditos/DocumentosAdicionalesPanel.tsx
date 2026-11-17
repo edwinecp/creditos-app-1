@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye, FolderPlus, Upload } from 'lucide-react';
 import { api, type DocumentoAdicionalRow } from '../../api';
+import { openDocument } from '../DocumentViewer';
 
 type Props = {
   token: string;
@@ -43,9 +44,7 @@ export const DocumentosAdicionalesPanel: React.FC<Props> = ({ token, creditoId, 
 
   const ver = async (doc: DocumentoAdicionalRow) => {
     try {
-      const url = URL.createObjectURL(await api.getDocumentoAdicionalArchivo(token, doc.id));
-      window.open(url, '_blank', 'noopener,noreferrer');
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      openDocument(await api.getDocumentoAdicionalArchivo(token, doc.id), doc.nombreArchivo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo abrir el documento');
     }
