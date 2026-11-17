@@ -4,7 +4,7 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts';
-import { Layers, Percent, RefreshCw, Save, ShieldCheck, Users } from 'lucide-react';
+import { Layers, Lock, Moon, Percent, RefreshCw, Save, ShieldCheck, Sun, Users } from 'lucide-react';
 import { FormStepper, type StepItem } from './FormStepper';
 import { FeedbackAlert, type FeedbackTone } from './FeedbackAlert';
 import { getAuthErrorMessage } from './feedback';
@@ -511,10 +511,10 @@ type Palette = {
 
 const palettes: Record<PaletteKey, Palette> = {
   azul: {
-    name: 'Azul corporativo',
-    primary: '#164d83',
-    primaryDark: '#0f3e70',
-    accent: '#2f7cc1'
+    name: 'Marino P&S',
+    primary: '#14325c',
+    primaryDark: '#0c2140',
+    accent: '#1b3a6b'
   },
   verde: {
     name: 'Verde financiero',
@@ -1540,6 +1540,9 @@ function App() {
   const activeUser = useMemo(() => session?.user ?? null, [session]);
   const selectedUser = users.find((user) => user.id === selectedUserId);
   const activePalette = palettes[paletteKey];
+  // apiStatus is "API <status> - PostgreSQL <db>"; the login shows a plain-language version.
+  const apiStatusTone = /no disponible/i.test(apiStatus) ? 'down' : /\b(ok|up|healthy)\b/i.test(apiStatus) ? 'ok' : /conectando/i.test(apiStatus) ? 'pending' : 'warn';
+  const apiStatusLabel = { ok: 'Sistema operativo', warn: 'Servicio con intermitencias', down: 'Servicio no disponible', pending: 'Conectando…' }[apiStatusTone];
   const visibleUserModules = userModules.filter((module) => !module.nombre.toLowerCase().includes('colaborador'));
   const selectedModule =
     view.startsWith('modulo:') ? visibleUserModules.find((module) => `modulo:${module.id}` === view) : null;
@@ -1779,9 +1782,11 @@ function App() {
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = themeMode;
-    root.style.setProperty('--color-primary', activePalette.primary);
-    root.style.setProperty('--color-primary-dark', activePalette.primaryDark);
-    root.style.setProperty('--color-accent', activePalette.accent);
+    // Dark mode uses the dark tokens from styles.css; palette colors are too dark to read on dark surfaces.
+    const paletteVars = { '--color-primary': activePalette.primary, '--color-primary-dark': activePalette.primaryDark, '--color-accent': activePalette.accent };
+    Object.entries(paletteVars).forEach(([name, value]) =>
+      themeMode === 'dark' ? root.style.removeProperty(name) : root.style.setProperty(name, value)
+    );
     localStorage.setItem('creditos.theme.mode', themeMode);
     localStorage.setItem('creditos.theme.palette', paletteKey);
   }, [activePalette, paletteKey, themeMode]);
@@ -5511,39 +5516,41 @@ function App() {
   if (!session) {
     return (
       <div className="login-screen">
-        <section className="login-panel">
-          <div className="login-brand">
-            <span>Creditos App</span>
-            <h1>Gestion de creditos y accesos</h1>
-            <p>Seguridad, empresas, creditos, cartera e inversionistas desde una base modular.</p>
-            <strong>{apiStatus}</strong>
+        <aside className="login-brand">
+          <div className="login-logo">
+            <span className="login-logo-mark">P&amp;S</span>
+            <span className="login-logo-text"><strong>P&amp;S Créditos</strong><small>Libranzas y cartera</small></span>
           </div>
+          <div className="login-brand-copy">
+            <h1>Gestión de créditos de libranza, de punta a punta.</h1>
+            <p>Originación, estudio, firma electrónica, desembolso y recaudo en una sola plataforma.</p>
+            <ul className="login-features">
+              <li>Estudio de crédito y validación de identidad</li>
+              <li>Cartera, recaudo y pagadurías al día</li>
+              <li>Firma electrónica y trazabilidad completa</li>
+            </ul>
+          </div>
+          <footer className="login-brand-footer">
+            <span>© {new Date().getFullYear()} P&amp;S Créditos</span>
+            <span className={`login-status login-status-${apiStatusTone}`} title={apiStatus}>{apiStatusLabel}</span>
+          </footer>
+        </aside>
 
+        <main className="login-main">
+          <button
+            type="button"
+            className="login-theme-toggle"
+            onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+            aria-label={themeMode === 'light' ? 'Cambiar a modo noche' : 'Cambiar a modo día'}
+            title={themeMode === 'light' ? 'Modo noche' : 'Modo día'}
+          >
+            {themeMode === 'light' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
+          </button>
           <form className="login-form" onSubmit={handleLogin}>
-            <h2>Iniciar sesion</h2>
-            <div className="theme-toolbar login-theme-toolbar">
-              <div className="mode-switch" aria-label="Modo de visualizacion">
-                <button
-                  type="button"
-                  className={themeMode === 'light' ? 'mode-button active' : 'mode-button'}
-                  onClick={() => setThemeMode('light')}
-                >
-                  Dia
-                </button>
-                <button
-                  type="button"
-                  className={themeMode === 'dark' ? 'mode-button active' : 'mode-button'}
-                  onClick={() => setThemeMode('dark')}
-                >
-                  Noche
-                </button>
-              </div>
-              <select value={paletteKey} onChange={(event) => setPaletteKey(event.target.value as PaletteKey)}>
-                {(Object.entries(palettes) as Array<[PaletteKey, Palette]>).map(([key, palette]) => (
-                  <option key={key} value={key}>{palette.name}</option>
-                ))}
-              </select>
-            </div>
+            <header>
+              <h2>Iniciar sesión</h2>
+              <p>Ingresa con tu usuario corporativo.</p>
+            </header>
             <label>
               Usuario o correo
               <input
@@ -5555,11 +5562,11 @@ function App() {
                   setAuthForm((current) => ({ ...current, username: event.target.value }));
                   if (message) setMessage('');
                 }}
-                placeholder="admin o correo@dominio.com"
+                placeholder="usuario o correo@empresa.com"
               />
             </label>
             <label>
-              Contrasena
+              Contraseña
               <input
                 type="password"
                 autoComplete="current-password"
@@ -5570,13 +5577,14 @@ function App() {
                   setAuthForm((current) => ({ ...current, password: event.target.value }));
                   if (message) setMessage('');
                 }}
-                placeholder="********"
+                placeholder="••••••••"
               />
             </label>
-            <button type="submit" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
+            <button type="submit" disabled={loading}>{loading ? 'Ingresando…' : 'Ingresar'}</button>
             <FeedbackAlert message={message} tone={messageTone} onDismiss={() => setMessage('')} />
+            <p className="login-secure"><Lock size={14} aria-hidden="true" /> Conexión cifrada · Acceso solo para personal autorizado</p>
           </form>
-        </section>
+        </main>
       </div>
     );
   }
